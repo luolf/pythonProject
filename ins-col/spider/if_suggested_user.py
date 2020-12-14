@@ -8,13 +8,14 @@ import os
 
 
 import requests
+import json
 from bs4 import BeautifulSoup
 from http.cookies import SimpleCookie
 
 from store import DbToMysql
 import config
 
-request_url = 'http://10.2.1.222:8091/api/Ins/SuggestedUsers?count=10'
+request_url = 'http://10.2.1.222:8091/api/Ins/SuggestedUsers?count=20'
 
 # HEADERS = {
 #     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75 Safari/537.36',
@@ -112,16 +113,51 @@ def cached_url(url):
 
 
 def main():
-    # store = DbToMysql(config.EHCO_DB)
-    # for i in range(0, 20001, 20):
-        jsonStr = get_html_json(request_url);
-        print(jsonStr);
-        #time.sleep(3)
-        # if html != -1:
+    store = DbToMysql(config.EHCO_DB)
+    # sql = "select * from suggested_user where "
+    # rst = store.query(sql)
+    # print(rst)
+    for i in range(0, 2000, 20):
+        jsonStr = get_html_json(request_url)
+
+        strDict=json.loads(jsonStr)
+
+
+        if strDict['status'] == 'ok':
+            result = list()
+            try:
+                edges = strDict['data']['user']['edge_suggested_users']['edges']
+
+                for j in range(0, len(edges), 1):
+                    # print(edges[j])
+                    edges[j]['node']['user']
+                    data = dict()
+                    data['follower_count'] = edges[j]['node']['user']['edge_followed_by']['count']
+                    data['uid'] = edges[j]['node']['user']['id']
+                    data['full_name'] = edges[j]['node']['user']['full_name']
+                    data['username'] = edges[j]['node']['user']['username']
+                    data['is_private'] = edges[j]['node']['user']['is_private']
+                    data['is_verified'] = edges[j]['node']['user']['is_verified']
+                    data['pic_url'] = edges[j]['node']['user']['profile_pic_url']
+
+                    sql = "select count(1) from suggested_user where uid ={}".format(data['uid'])
+                    rst = store.query(sql)
+                    print(len(rst))
+                    if len(rst) == 0:
+                        store.save_one_data('suggested_user', data)
+                        result.append(data)
+                    else:
+                        print('该用户已存在：uid={},username={}'.format(data['uid'], data['username']))
+
+
+            except AttributeError as e:
+                print('数据有问题', e)
+            print('第{}页保存完毕'.format(i))
+            return result
         #     res_list = parse_detail(html)
         #     if res_list != -1:
         #         for data in res_list:
-        #             store.save_one_data('GodOfHammer_1', data)
+        #             store.save_one_data('suggested_user', data)
         #         print('第{}页保存完毕'.format(i))
     # store.close()
 

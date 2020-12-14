@@ -45,14 +45,30 @@ class DbToMysql():
         datas = {}
         for k, v in data.items():
             # 防止sql注入
-            datas.update({k: pymysql.escape_string(v)})
+            if type(v)== int:
+                datas.update({k: v})
+            elif type(v)== bool:
+                datas.update({k: v})
+                # if v:
+                #     datas.update({k: 1})
+                # else:
+                #     datas.update({k: 0})
+            else:
+                datas.update({k: pymysql.escape_string(v)})
         for d in datas:
             fields += "`{}`,".format(str(d))
-            values += "'{}',".format(str(data[d]))
+            # values += "'{}',".format(str(datas[d]))
+            if type(datas[d]) == int:
+                values += "{},".format(datas[d])
+            elif type(datas[d]) == bool:
+                values += "{},".format(datas[d])
+            else:
+                values += "'{}',".format(str(datas[d]))
+
         if len(fields) <= 0 or len(values) <= 0:
             return -1
         # 生成sql语句
-        sql = "insert ignore into {}({}) values({})".format(
+        sql = "insert  into {}({}) values({})".format(
             table, fields[:-1], values[:-1])
 
         try:
@@ -62,11 +78,11 @@ class DbToMysql():
                 self.con.commit()
                 res = cursor.fetchone()
                 return res
-        except:
-            print('数据库保存错误')
+        except  AttributeError as e:
+            print('数据库保存错误', e)
             return -1
-        finally:
-            self.close()
+        # finally:
+        #     self.close()
 
     def find_all(self, table, limit):
         '''
@@ -166,3 +182,26 @@ class DbToMysql():
             return -1
         finally:
             self.close()
+
+    def query(self, sql):
+        '''
+        根据sql查询
+        Args:
+            sql: sql 语句 str
+        return:
+            成功： 查询的结果
+            失败： -1 并打印返回报错信息
+        '''
+
+        try:
+            with self.con.cursor() as cursor:
+                # 执行语句
+                cursor.execute(sql)
+                self.con.commit()
+                res = cursor.fetchall()
+                return res
+        except  AttributeError as e:
+            print('数据库查询错误', e)
+            return -1
+        # finally:
+        #     self.close()
