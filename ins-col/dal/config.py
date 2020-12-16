@@ -6,3 +6,10 @@ EHCO_DB = {
     'db': 'ins-spider',
     'port': 30000,
 }
+
+topics = {
+    'ins-users': 'ins-users',
+    'test': 'test',
+    'user_follow': 'ins-users',
+    'ins-users2': 'ins-users',
+}

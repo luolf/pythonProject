@@ -45,16 +45,14 @@ class DbToMysql():
         datas = {}
         for k, v in data.items():
             # 防止sql注入
-            if type(v)== int:
-                datas.update({k: v})
-            elif type(v)== bool:
-                datas.update({k: v})
-                # if v:
-                #     datas.update({k: 1})
-                # else:
-                #     datas.update({k: 0})
-            else:
+            if type(v)== str:
                 datas.update({k: pymysql.escape_string(v)})
+            elif v is None:
+                # datas.update({k: v})
+                None
+            else:
+                datas.update({k: v})
+
         for d in datas:
             fields += "`{}`,".format(str(d))
             # values += "'{}',".format(str(datas[d]))
@@ -79,7 +77,7 @@ class DbToMysql():
                 res = cursor.fetchone()
                 return res
         except  AttributeError as e:
-            print('数据库保存错误', e)
+            print('数据库保存错误', e, sql)
             return -1
         # finally:
         #     self.close()
@@ -196,12 +194,13 @@ class DbToMysql():
         try:
             with self.con.cursor() as cursor:
                 # 执行语句
+
                 cursor.execute(sql)
                 self.con.commit()
                 res = cursor.fetchall()
                 return res
-        except  AttributeError as e:
-            print('数据库查询错误', e)
-            return -1
+        except  Exception as e:
+            print('query 数据库查询错误', e, sql)
+            return []
         # finally:
         #     self.close()
