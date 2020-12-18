@@ -29,6 +29,11 @@ def spide_user_by_acount(user_name, store, producers):
             return None
         jsonStr = get_html_json(request_url.format(user_name=user_name))
         gl.if_username_invokes = gl.if_username_invokes + 1
+        if jsonStr.find(html_str) >= 0:
+            print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                  'UserInfoByUserName 返回html结构,url={}'.format(request_url.format(uid=uid)))
+            gl.if_username_return_html = gl.if_username_return_html + 1
+            return None
         if len(jsonStr) == 0:
             # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_user_by_acount 返回空')
             gl.if_username_empty = gl.if_username_empty + 1
@@ -44,9 +49,9 @@ def spide_user_by_acount(user_name, store, producers):
         #     producer.produce(msg)
         #     cnt = cnt + 1
     except AttributeError as e:
-        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'spide_user_by_acount数据有问题，user_name={},jsonStr={}'.format(user_name, jsonStr))
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'UserInfoByUserName数据有问题，user_name={},jsonStr={}'.format(user_name, jsonStr))
     # finally:
-    #     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_user_by_acount数据完成，user_name={}'.format(user_name))
+    #     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserInfoByUserName数据完成，user_name={}'.format(user_name))
 
 
 # 通过播主id查找信息
@@ -59,6 +64,11 @@ def spide_user_by_uid(uid, store, producers):
             return None
         jsonStr = get_html_json(request_url.format(uid=uid))
         gl.if_user_invokes = gl.if_user_invokes + 1
+        if jsonStr.find(html_str) >= 0:
+            print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                  'UserInfoByUserId 返回html结构,url={}'.format(request_url.format(uid=uid)))
+            gl.if_user_return_html = gl.if_user_return_html + 1
+            return None
         if len(jsonStr) == 0:
             # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_user_by_uid 返回空')
             gl.if_user_empty = gl.if_user_empty + 1
@@ -79,9 +89,9 @@ def spide_user_by_uid(uid, store, producers):
         #     cnt = cnt + 1
 
     except Exception as e:
-        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'spide_user_by_uid数据有问题，uid={},url={},jsonStr={}'.format(uid, request_url.format(uid=uid), jsonStr))
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'UserInfoByUserId 数据有问题，uid={},url={},jsonStr={}'.format(uid, request_url.format(uid=uid), jsonStr))
     # finally:
-    #     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_user_by_uid数据完成，uid={}'.format(uid))
+    #     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserInfoByUserId 数据完成，uid={}'.format(uid))
 
 
 # 关注的人列表
@@ -103,7 +113,8 @@ def spide_userFollowing_by_uid(uid, store, producers):
                 jsonStr = get_html_json(request_url.format(uid=uid, cursor=end_cursor))
                 gl.if_following_invokes = gl.if_following_invokes + 1
                 if jsonStr.find(html_str) >= 0:
-                    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowing_by_uid 返回html结构,url={}'.format(request_url.format(uid=uid, cursor=end_cursor)))
+                    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserFollowing 返回html结构,url={}'.format(request_url.format(uid=uid, cursor=end_cursor)))
+                    gl.if_following_return_html = gl.if_following_return_html + 1
                     return None
                 if len(jsonStr) == 0:
                     # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowing_by_uid 返回空')
@@ -130,14 +141,14 @@ def spide_userFollowing_by_uid(uid, store, producers):
                 if not page_info['has_next_page']:
                     flag = 0
                 # else:
-                #     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowing_by_uid uid={}还有下一页'.format(uid))
+                #     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserFollowing uid={}还有下一页'.format(uid))
                 end_cursor = page_info['end_cursor']
                 gl.if_following_rows = gl.if_following_rows + cnt
             except Exception as e:
                 flag = 0
-                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'spide_userFollowing_by_uid数据有问题uid={},end_cursor={},url={},jsonStr={}'.format(uid, end_cursor, request_url.format(uid=uid, cursor=end_cursor), jsonStr))
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'UserFollowing数据有问题uid={},end_cursor={},url={},jsonStr={}'.format(uid, end_cursor, request_url.format(uid=uid, cursor=end_cursor), jsonStr))
     except Exception as e:
-        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowing_by_uid数据有问题uid={}'.format(uid), e)
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserFollowing数据有问题uid={}'.format(uid), e)
 
 
 # 我的粉丝
@@ -159,7 +170,8 @@ def spide_userFollowed_by_uid(uid, store, producers):
                 jsonStr = get_html_json(request_url.format(uid=uid, cursor=end_cursor))
                 gl.if_followed_invokes = gl.if_followed_invokes + 1
                 if jsonStr.find(html_str) >= 0:
-                    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowed_by_uid 返回html结构,url={}'.format(request_url.format(uid=uid,cursor=end_cursor)))
+                    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserFollowedBy 返回html结构,url={}'.format(request_url.format(uid=uid,cursor=end_cursor)))
+                    gl.if_followed_return_html = gl.if_followed_return_html + 1
                     return None
                 if len(jsonStr) == 0:
                     # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowed_by_uid 返回空')
@@ -194,6 +206,6 @@ def spide_userFollowed_by_uid(uid, store, producers):
                 end_cursor = page_info['end_cursor']
             except Exception as e:
                 flag = 0
-                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'spide_userFollowed_by_uid数据有问题uid={},end_cursor={},jsonStr={},url={}'.format(uid, end_cursor, request_url.format(uid=uid, cursor=end_cursor), jsonStr))
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'UserFollowedBy数据有问题uid={},end_cursor={},jsonStr={},url={}'.format(uid, end_cursor, request_url.format(uid=uid, cursor=end_cursor), jsonStr))
     except Exception as e:
-        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowed_by_uid数据有问题 uid={}'.format(uid), e)
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserFollowedBy数据有问题 uid={}'.format(uid), e)

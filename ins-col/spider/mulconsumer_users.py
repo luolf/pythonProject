@@ -64,9 +64,9 @@ def main():
 
         # 开启新线程
         thread0.start()
-        thread1.start()
+        # thread1.start()
         thread2.start()
-        thread3.start()
+        # thread3.start()
         thread4.start()
 
         # threads = [thread0, thread1, thread2, thread3, thread4]

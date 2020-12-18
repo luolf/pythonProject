@@ -88,13 +88,13 @@ def save_user_ext_edges(user, store):
     data['is_private'] = user['is_private']
     data['is_verified'] = user['is_verified']
 
-    sql = "select 1 from user_by_username where uid ={}".format(data['uid'])
+    sql = "select 1 from user_by_username where uid ={}".format(data['username'])
     rst = store.query(sql)
     if len(rst) == 0:
         store.save_one_data('user_by_username', data)
         result.append(data)
     else:
-        print('user_by_username 已存在：uid={},username={}'.format(data['uid'], data['username']))
+        print('user_by_username 已存在：username={}'.format(data['username']))
     return result
 
 
