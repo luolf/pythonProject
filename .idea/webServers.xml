@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="ae26c373-77c7-4cb6-879c-d2ecc5cefd95" name="228" url="http://10.2.1.228">
+        <fileTransfer rootFolder="/home/gugee/python3" accessType="SFTP" host="10.2.1.228" port="22" sshConfigId="9d5f3cbe-f7e6-4b28-b98a-cf3bb775ad1b" sshConfig="gugee@10.2.1.228:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

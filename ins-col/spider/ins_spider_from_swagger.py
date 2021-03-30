@@ -15,31 +15,43 @@ from myspideCommon import *
 import gl
 
 html_str = '<!DOCTYPE'
-
+ins_app_spider_host = 'http://tiktokapi.gugeedata.com:8083/api'
 
 # 通过播主账号查找信息
 def spide_user_by_acount(user_name, store, producers):
-    request_url = 'http://10.2.1.222:8091/api/Ins/UserInfoByUserName?userName={user_name}'
+    request_url = 'http://tiktokapi.gugeedata.com:8083/api/Ins/UserInfoByUserName?userName={user_name}'
 
 
     try:
-        sql = "select 1 from user_by_username where userName='{}'".format(user_name)
-        rst = store.query(sql)
-        if len(rst) > 0:
-            return None
+        # sql = "select 1 from user_by_username where username='{}'".format(user_name)
+        # rst = store.query(sql)
+        # if len(rst) > 0:
+        #     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "len(rst) > 0")
+        #     return None
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        # time.sleep(1)
+        # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_name)
         jsonStr = get_html_json(request_url.format(user_name=user_name))
+        # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_name, jsonStr)
+        if jsonStr == '{}':
+            print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_name, jsonStr)
+            return None
         gl.if_username_invokes = gl.if_username_invokes + 1
+
+        if len(jsonStr) == 0:
+            # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_user_by_acount 返回空')
+            print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_name, jsonStr)
+            gl.if_username_empty = gl.if_username_empty + 1
+            return None
         if jsonStr.find(html_str) >= 0:
             print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                   'UserInfoByUserName 返回html结构,url={}'.format(request_url.format(uid=uid)))
             gl.if_username_return_html = gl.if_username_return_html + 1
             return None
-        if len(jsonStr) == 0:
-            # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_user_by_acount 返回空')
-            gl.if_username_empty = gl.if_username_empty + 1
-            return None
-
         strDict = json.loads(jsonStr)
+        if not strDict['graphql']:
+            print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_name, jsonStr)
+            return None
         result = save_user_ext_edges(strDict['graphql']['user'], store)
         gl.if_username_rows = gl.if_username_rows + 1
         # send kafka
@@ -70,7 +82,7 @@ def spide_user_by_uid(uid, store, producers):
             gl.if_user_return_html = gl.if_user_return_html + 1
             return None
         if len(jsonStr) == 0:
-            # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_user_by_uid 返回空')
+            print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_user_by_uid 返回空')
             gl.if_user_empty = gl.if_user_empty + 1
             return None
 
@@ -94,6 +106,106 @@ def spide_user_by_uid(uid, store, producers):
     #     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserInfoByUserId 数据完成，uid={}'.format(uid))
 
 
+# 采集insapp 帖子列表
+def spide_insapp_medialist_by_uid(uid, store, producers):
+    request_url = ins_app_spider_host+'/InsApp/MediaListByUserId?userId={uid}&max_id={end_cursor}'
+    try:
+        end_cursor = ''
+        flag = 1  # 定义一个退出循环的标志
+        # return
+        while flag:
+            try:
+                # time.sleep(0.3)
+                # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "开始爬取uid={}".format(uid))
+                url = request_url.format(uid=uid, end_cursor=end_cursor)
+                jsonStr = get_html_json(url)
+                if jsonStr.find(html_str) >= 0:
+                    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'INSAPP MediaListByUserId 返回html结构,url={}'.format(url))
+                    # gl.if_following_return_html = gl.if_following_return_html + 1
+                    return None
+                if len(jsonStr) == 0:
+                    # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowing_by_uid 返回空')
+                    # gl.if_following_empty = gl.if_following_empty + 1
+                    return None
+
+                strDict = json.loads(jsonStr)
+                if strDict['status'] != 'ok':
+                    return
+
+
+                # count = strDict['more_available']
+                if strDict['num_results'] < 1:
+                    return
+
+                if 'items' in strDict:
+                    rst = save_medias_from_app(uid, strDict['items'], store)
+                    if not rst:
+                        return
+                flag = 0
+                if 'next_max_id' in strDict:
+                    end_cursor = strDict['next_max_id']
+                    flag = 1
+
+
+            except Exception as ie:
+                flag = 0
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ie, 'INSAPP MediaListByUserId数据有问题uid={uid},end_cursor={end_cursor},url={url}'.format(uid=uid, end_cursor=end_cursor, url=url), traceback.print_exc())
+                # print(traceback.print_exc())
+
+
+    except Exception as e:
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'INSAPP MediaListByUserId 数据有问题，uid={uid}'.format(uid))
+
+
+# 采集insapp 播主产品列表
+def spide_insapp_product_list_by_uid(uid, store, producers):
+    request_url = ins_app_spider_host+'/InsApp/ProductListByUserId?userId={uid}&max_id={end_cursor}'
+    try:
+        end_cursor = ''
+        flag = 1  # 定义一个退出循环的标志
+        # return
+        while flag:
+            try:
+                # time.sleep(0.3)
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "开始爬取uid={}".format(uid))
+                url = request_url.format(uid=uid, end_cursor=end_cursor)
+                jsonStr = get_html_json(url)
+                if jsonStr.find(html_str) >= 0:
+                    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'INSAPP MediaListByUserId 返回html结构,url={}'.format(url))
+                    # gl.if_following_return_html = gl.if_following_return_html + 1
+                    return None
+                if len(jsonStr) == 0:
+                    # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'spide_userFollowing_by_uid 返回空')
+                    # gl.if_following_empty = gl.if_following_empty + 1
+                    return None
+
+                pl = json.loads(jsonStr)
+                if pl['status'] != 'ok':
+                    return
+                if 'product_feed' not in pl or pl['product_feed'] is None:
+                    return None
+                strDict = pl['product_feed']
+
+                if strDict['num_results'] < 1:
+                    return
+
+                if 'items' in strDict:
+                    rst = save_products_from_app(uid, strDict['items'], store)
+                flag = 0
+                if 'next_max_id' in strDict and strDict['next_max_id'] is not None and strDict['next_max_id'] != 'null':
+                    end_cursor = strDict['next_max_id']
+                    flag = 1
+
+            except Exception as ie:
+                flag = 0
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), ie, 'INSAPP MediaListByUserId数据有问题uid={uid},end_cursor={end_cursor},url={url}'.format(uid=uid, end_cursor=end_cursor, url=url), traceback.print_exc())
+                # print(traceback.print_exc())
+
+
+    except Exception as e:
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e, 'INSAPP MediaListByUserId 数据有问题，uid={uid}'.format(uid))
+
+
 # 关注的人列表
 def spide_userFollowing_by_uid(uid, store, producers):
     request_url = 'http://10.2.1.222:8091/api/Ins/UserFollowing?userId={uid}&end_cursor={cursor}'
@@ -103,12 +215,9 @@ def spide_userFollowing_by_uid(uid, store, producers):
         rst = store.query(sql)
         if len(rst) > 0:
             return None
-
         flag = 1  # 定义一个退出循环的标志
-
         while flag:
             try:
-
                 # if not firstPage:
                 jsonStr = get_html_json(request_url.format(uid=uid, cursor=end_cursor))
                 gl.if_following_invokes = gl.if_following_invokes + 1
@@ -150,6 +259,83 @@ def spide_userFollowing_by_uid(uid, store, producers):
     except Exception as e:
         print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'UserFollowing数据有问题uid={}'.format(uid), e)
 
+
+# 临时，发送username到队列给，username接口消费
+def send_username_2_topic(store, producers):
+
+    try:
+
+        flag = 1  # 定义一个退出循环的标志
+        s_id = 0
+        e_id = 0
+        cnt = 0
+        step = 1000
+        while flag:
+            try:
+                s_id = e_id + 0
+                e_id = e_id + step
+                sql = "select username from temp_blogger a where id between {} and {} and not exists (select 1 from user_by_username b where b.username=a.username)".format(s_id, e_id)
+                rst = store.query(sql)
+                if len(rst) == 0:
+
+                    continue
+                if e_id >= 111000:
+                    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cnt, s_id, e_id, "break")
+                    flag = 0
+                    break
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cnt, s_id, e_id)
+                tem_cnt = 0
+                while tem_cnt < len(rst):
+                    msg = json.dumps(rst[tem_cnt]).encode()
+                    # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cnt, s_id, e_id)
+                    producers['username_only_topic'].produce(msg)
+                    tem_cnt = tem_cnt + 1
+                cnt = cnt + tem_cnt
+            except Exception as e:
+                flag = 0
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e)
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cnt)
+    except Exception as e:
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e)
+
+
+# 临时，发送uid到队列
+def send_userid_2_topic(store, producer):
+
+    try:
+
+        flag = 1  # 定义一个退出循环的标志
+        s_id = 0
+        e_id = 0
+        cnt = 0
+        step = 1000
+        while flag:
+            try:
+                s_id = e_id + 1
+                e_id = e_id + step
+                sql = "select uid from ins_blogger_main a where id between {} and {} ".format(s_id, e_id)
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), sql)
+                rst = store.query(sql)
+                if len(rst) == 0 and e_id < 111000:
+                    continue
+                if e_id >= 111000:
+                    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cnt, s_id, e_id, "break")
+                    flag = 0
+                    break
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cnt, s_id, e_id)
+                tem_cnt = 0
+                while tem_cnt < len(rst):
+                    msg = json.dumps(rst[tem_cnt]).encode()
+                    # print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cnt, s_id, e_id)
+                    producer.produce(msg)
+                    tem_cnt = tem_cnt + 1
+                cnt = cnt + tem_cnt
+            except Exception as e:
+                flag = 0
+                print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e)
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), cnt)
+    except Exception as e:
+        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), e)
 
 # 我的粉丝
 def spide_userFollowed_by_uid(uid, store, producers):

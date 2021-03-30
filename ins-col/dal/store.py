@@ -79,6 +79,8 @@ class DbToMysql():
         except  AttributeError as e:
             print('数据库保存错误', e, sql)
             return -1
+        except Exception as e:
+            print('数据库保存错误', e, sql)
         # finally:
         #     self.close()
 
